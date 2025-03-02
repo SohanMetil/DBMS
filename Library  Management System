@@ -1,0 +1,225 @@
+-- Step 1: Creating the Database
+CREATE DATABASE LibraryManagement;
+USE LibraryManagement;
+
+-- Users Table
+CREATE TABLE Users (
+    UserID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Email VARCHAR(100) UNIQUE NOT NULL,
+    Phone VARCHAR(15) UNIQUE,
+    Address TEXT,
+    Registration_Date DATE NOT NULL,
+    Membership ENUM('Regular', 'Premium', 'Guest') NOT NULL
+);
+
+-- Librarians Table
+CREATE TABLE Librarians (
+    LibrarianID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Phone VARCHAR(15) UNIQUE NOT NULL,
+    Salary DECIMAL(10,2) NOT NULL
+);
+
+-- Authors Table
+CREATE TABLE Authors (
+    AuthorID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    DOB DATE,
+    Country_Origin VARCHAR(100),
+    Email VARCHAR(255) UNIQUE
+);
+
+-- Books Table
+CREATE TABLE Books (
+    BookID INT AUTO_INCREMENT PRIMARY KEY,
+    Title VARCHAR(255) NOT NULL,
+    ISBN VARCHAR(20) UNIQUE NOT NULL,
+    Genre VARCHAR(100),
+    PublishedYear INT CHECK (PublishedYear BETWEEN 1800 AND 2025),
+    Description TEXT
+);
+
+-- Publishers Table
+CREATE TABLE Publishers (
+    PublisherID INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(255) NOT NULL,
+    Address TEXT,
+    Phone VARCHAR(15) UNIQUE,
+    Email VARCHAR(255) UNIQUE NOT NULL
+);
+
+-- Categories Table
+CREATE TABLE Categories (
+    CategoryID INT AUTO_INCREMENT PRIMARY KEY,
+    Category_Name VARCHAR(100) UNIQUE NOT NULL
+);
+
+-- Transactions Table
+CREATE TABLE Transactions (
+    TransactionID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT,
+    BookID INT,
+    IssueDate DATE NOT NULL,
+    ReturnDate DATE,
+    Status ENUM('Issued', 'Returned') NOT NULL,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE,
+    FOREIGN KEY (BookID) REFERENCES Books(BookID) ON DELETE CASCADE
+);
+
+-- Fines Table
+CREATE TABLE Fines (
+    FineID INT AUTO_INCREMENT PRIMARY KEY,
+    UserID INT NOT NULL,
+    TransactionID INT NOT NULL,
+    FineAmount DECIMAL(5,2) NOT NULL,
+    PaidStatus ENUM('Paid', 'Pending') NOT NULL,
+    FOREIGN KEY (UserID) REFERENCES Users(UserID) ON DELETE CASCADE,
+    FOREIGN KEY (TransactionID) REFERENCES Transactions(TransactionID) ON DELETE CASCADE
+);
+
+-- Many-to-Many Relationships
+CREATE TABLE Written_By (
+    BookID INT,
+    AuthorID INT,
+    PRIMARY KEY (BookID, AuthorID),
+    FOREIGN KEY (BookID) REFERENCES Books(BookID) ON DELETE CASCADE,
+    FOREIGN KEY (AuthorID) REFERENCES Authors(AuthorID) ON DELETE CASCADE
+);
+
+CREATE TABLE Book_Publishers (
+    BookID INT,
+    PublisherID INT,
+    PRIMARY KEY (BookID, PublisherID),
+    FOREIGN KEY (BookID) REFERENCES Books(BookID) ON DELETE CASCADE,
+    FOREIGN KEY (PublisherID) REFERENCES Publishers(PublisherID) ON DELETE CASCADE
+);
+
+CREATE TABLE Book_Categories (
+    BookID INT,
+    CategoryID INT,
+    PRIMARY KEY (BookID, CategoryID),
+    FOREIGN KEY (BookID) REFERENCES Books(BookID) ON DELETE CASCADE,
+    FOREIGN KEY (CategoryID) REFERENCES Categories(CategoryID) ON DELETE CASCADE
+);
+
+-- Step 2: Inserting Data
+INSERT INTO Users (UserID, Name, Email, Phone, Address) VALUES
+(1, 'John Doe', 'john@example.com', '9876543210', '123 Street, City'),
+(2, 'Jane Smith', 'jane@example.com', '8765432109', '456 Avenue, City'),
+(3, 'Alice Brown', 'alice@example.com', '9988776655', '789 Road, Village'),
+(4, 'Bob Williams', 'bob@example.com', '9871234567', '321 Lane, Town'),
+(5, 'Charlie Davis', 'charlie@example.com', '9123456789', '654 Avenue, City'),
+(6, 'David White', 'david@example.com', '9012345678', '567 Boulevard, Town'),
+(7, 'Eva Green', 'eva@example.com', '8901234567', '876 Street, Village'),
+(8, 'Frank Black', 'frank@example.com', '7890123456', '432 Road, City'),
+(9, 'Grace Hall', 'grace@example.com', '6789012345', '987 Drive, Town'),
+(10, 'Henry King', 'henry@example.com', '5678901234', '123 Avenue, Village');
+
+INSERT INTO Authors (AuthorID, Name) VALUES
+(1, 'Author 1'),
+(2, 'Author 2'),
+(3, 'Author 3'),
+(4, 'Author 4'),
+(5, 'Author 5');
+
+INSERT INTO Books (BookID, Title, AuthorID, ISBN, Genre, PublishedYear) VALUES
+(1, 'Book Title 1', 1, '978000000001', 'Fiction', 2000),
+(2, 'Book Title 2', 2, '978000000002', 'Non-Fiction', 2001),
+(3, 'Book Title 3', 3, '978000000003', 'Fiction', 2002),
+(4, 'Book Title 4', 4, '978000000004', 'Non-Fiction', 2003),
+(5, 'Book Title 5', 5, '978000000005', 'Fiction', 2004);
+
+INSERT INTO Transactions (TransactionID, UserID, BookID, IssueDate, ReturnDate, Status) VALUES
+(1, 1, 1, '2025-02-01', NULL, 'Issued'),
+(2, 2, 2, '2025-02-02', NULL, 'Issued'),
+(3, 3, 3, '2025-02-03', NULL, 'Issued'),
+(4, 4, 4, '2025-02-04', NULL, 'Issued'),
+(5, 5, 5, '2025-02-05', NULL, 'Issued');
+
+INSERT INTO Fines (FineID, UserID, TransactionID, FineAmount, PaidStatus) VALUES
+(1, 1, 1, 10.00, 'Pending'),
+(2, 2, 2, 20.00, 'Pending'),
+(3, 3, 3, 30.00, 'Pending'),
+(4, 4, 4, 40.00, 'Pending'),
+(5, 5, 5, 50.00, 'Pending');
+
+
+-- Step 3: Queries
+-- Get all issued books
+SELECT * FROM Transactions WHERE Status = 'Issued';
+
+-- Get all books issued by a user
+SELECT Users.Name, Books.Title FROM Transactions
+JOIN Users ON Transactions.UserID = Users.UserID
+JOIN Books ON Transactions.BookID = Books.BookID
+WHERE Users.UserID = 1;
+
+-- Find users who have borrowed the most books
+SELECT Users.Name, COUNT(Transactions.TransactionID) AS BorrowedBooks 
+FROM Transactions
+JOIN Users ON Transactions.UserID = Users.UserID
+GROUP BY Users.Name
+ORDER BY BorrowedBooks DESC;
+
+-- Find the most issued book
+SELECT Books.Title, COUNT(*) AS IssueCount FROM Transactions
+JOIN Books ON Transactions.BookID = Books.BookID
+GROUP BY Books.Title ORDER BY IssueCount DESC LIMIT 1;
+
+-- Calculate total fine per user
+SELECT Users.Name, SUM(Fines.FineAmount) AS TotalFine FROM Fines
+JOIN Users ON Fines.UserID = Users.UserID
+GROUP BY Users.Name;
+
+-- Find users with pending fines
+SELECT Users.Name, Fines.FineAmount FROM Fines
+JOIN Users ON Fines.UserID = Users.UserID WHERE Fines.PaidStatus = 'Pending';
+
+-- Mark book as returned and update fine
+UPDATE Transactions SET Status = 'Returned', ReturnDate = '2025-02-15' WHERE TransactionID = 1;
+UPDATE Fines SET PaidStatus = 'Paid' WHERE FineID = 1;
+
+-- Delete inactive users
+DELETE FROM Users WHERE UserID NOT IN (SELECT DISTINCT UserID FROM Transactions);
+
+-- 1. Count Total Books in Each Genre
+
+SELECT Genre, COUNT(*) AS Total_Books
+FROM Books
+GROUP BY Genre;
+
+-- 2. Total Fine Collected by Payment Status
+SELECT Payment_Status, SUM(Amount) AS Total_Amount
+FROM Fine
+GROUP BY Payment_Status;
+
+-- 3. Number of Books Each Author Has Written
+SELECT a.Name AS Author, COUNT(wb.Book_ID) AS Total_Books
+FROM Author a
+JOIN Written_By wb ON a.Author_ID = wb.Author_ID
+GROUP BY a.Author_ID;
+
+-- 4. Number of Books Per Publisher
+SELECT p.Name AS Publisher, COUNT(bp.Book_ID) AS Total_Books
+FROM Publisher p
+JOIN Book_Publishers bp ON p.Publisher_ID = bp.Publisher_ID
+GROUP BY p.Publisher_ID;
+
+-- 5. Number of Books Reserved by Each User
+SELECT u.Name AS User, COUNT(r.Book_ID) AS Total_Reservations
+FROM User u
+JOIN Reservation r ON u.User_ID = r.User_ID
+GROUP BY u.User_ID;
+
+-- 6. Librarian Count Based on Salary Range
+
+SELECT 
+    CASE 
+        WHEN Salary < 30000 THEN 'Low Salary'
+        WHEN Salary BETWEEN 30000 AND 60000 THEN 'Medium Salary'
+        ELSE 'High Salary'
+    END AS Salary_Range, 
+    COUNT(*) AS Librarian_Count
+FROM Librarian
+GROUP BY Salary_Range;
